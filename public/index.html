@@ -141,13 +141,23 @@
       html += `<div class="pill-list">${dup.map(e => `<span class="pill">${e}</span>`).join('')}</div>`;
     }
 
+    // html += `
+    //   <div class="section-header">Identity</div>
+    //   <div style="font-family:var(--mono);font-size:13px;color:var(--muted);line-height:2">
+    //     <span style="color:var(--text)">${data.user_id}</span> &nbsp;·&nbsp;
+    //     ${data.email_id} &nbsp;·&nbsp;
+    //     ${data.college_roll_number}
+    //   </div>`;
+
     html += `
-      <div class="section-header">Identity</div>
-      <div style="font-family:var(--mono);font-size:13px;color:var(--muted);line-height:2">
-        <span style="color:var(--text)">${data.user_id}</span> &nbsp;·&nbsp;
-        ${data.email_id} &nbsp;·&nbsp;
-        ${data.college_roll_number}
-      </div>`;
+  <div class="section-header">Identity</div>
+  <div class="identity-row">
+    <span class="identity-item">${data.user_id}</span>
+    <span class="dot">·</span>
+    <span class="identity-item">${data.email_id}</span>
+    <span class="dot">·</span>
+    <span class="identity-item">${data.college_roll_number}</span>
+  </div>`;
 
     html += `
       <button class="raw-toggle" onclick="toggleRaw(this)">Show raw JSON</button>

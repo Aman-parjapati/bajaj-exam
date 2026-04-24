@@ -319,6 +319,24 @@
       font-style: italic;
     }
 
+    .identity-row {
+  font-family: var(--mono);
+  font-size: 13px;
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.identity-item {
+  color: var(--text);   /* highlight all */
+}
+
+.dot {
+  color: var(--muted);  /* keep separator subtle */
+}
+
     /* .raw-toggle {
       color: #e8e8f0;
       background: none;
