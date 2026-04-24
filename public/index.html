@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BFHL — Tree Analyzer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+<div class="wrapper">
+
+  <header>
+    <div class="badge">POST /bfhl</div>
+    <h1>Tree Analyzer</h1>
+    <p class="subtitle">Submit a list of node edges (e.g. <code style="color:var(--accent)">A->B</code>) and visualize the hierarchical structure.</p>
+  </header>
+
+  <div class="card">
+    <div class="card-title">Node Edges</div>
+    <textarea id="inputData" placeholder="A->B, A->C, B->D, C->E, E->F&#10;X->Y, Y->Z, Z->X&#10;P->Q, Q->R&#10;hello, 1->2, A->"></textarea>
+    <p class="hint">Enter edges separated by commas or newlines. Whitespace is handled automatically.</p>
+
+    <div class="url-row">
+      <span class="url-label">API URL</span>
+      <input type="text" id="apiUrl" value="/bfhl" placeholder="https://your-api.com/bfhl" />
+    </div>
+
+    <button class="btn" id="submitBtn" onclick="submitData()">
+      <div class="spinner"></div>
+      <span class="btn-text">Analyze</span>
+    </button>
+  </div>
+
+  <div class="error-banner" id="errorBanner"></div>
+
+  <div id="results" style="display:none"></div>
+
+</div>
+
+<script>
+  async function submitData() {
+    const raw = document.getElementById('inputData').value.trim();
+    const apiUrl = document.getElementById('apiUrl').value.trim() || '/bfhl';
+    const btn = document.getElementById('submitBtn');
+    const errorBanner = document.getElementById('errorBanner');
+    const resultsDiv = document.getElementById('results');
+
+    if (!raw) { showError('Please enter at least one edge.'); return; }
+
+    // Parse: split on newlines or commas
+    const data = raw.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+
+    // UI loading state
+    btn.disabled = true;
+    btn.classList.add('loading');
+    errorBanner.classList.remove('show');
+    resultsDiv.style.display = 'none';
+
+    try {
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data }),
+      });
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || `HTTP ${res.status}`);
+      }
+
+      const json = await res.json();
+      renderResults(json);
+    } catch (err) {
+      showError(`API call failed: ${err.message}`);
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove('loading');
+    }
+  }
+
+  function showError(msg) {
+    const b = document.getElementById('errorBanner');
+    b.textContent = msg;
+    b.classList.add('show');
+  }
+
+  function renderResults(data) {
+    const div = document.getElementById('results');
+
+    const trees  = (data.hierarchies || []).filter(h => !h.has_cycle);
+    const cycles = (data.hierarchies || []).filter(h => h.has_cycle);
+    const summary = data.summary || {};
+
+    let html = `
+      <div class="summary-strip">
+        <div class="stat-box">
+          <div class="stat-value">${summary.total_trees ?? '-'}</div>
+          <div class="stat-label">Trees</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" style="color:var(--red)">${summary.total_cycles ?? '-'}</div>
+          <div class="stat-label">Cycles</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" style="color:var(--yellow)">${summary.largest_tree_root || '-'}</div>
+          <div class="stat-label">Deepest Root</div>
+        </div>
+      </div>`;
+
+    html += `<div class="section-header">Hierarchies (${(data.hierarchies || []).length})</div>
+             <div class="hier-grid">`;
+
+    for (const h of (data.hierarchies || [])) {
+      const isCycle = !!h.has_cycle;
+      html += `
+        <div class="hier-card ${isCycle ? 'cycle' : 'tree'}">
+          ${!isCycle ? `<div class="hier-depth">depth: ${h.depth}</div>` : ''}
+          <div class="hier-root">${h.root}</div>
+          <div class="hier-tag ${isCycle ? 'tag-cycle' : 'tag-tree'}">${isCycle ? '⟳ cycle' : '✓ tree'}</div>
+          ${!isCycle ? `<div class="tree-json">${JSON.stringify(h.tree, null, 2)}</div>` : ''}
+        </div>`;
+    }
+    html += `</div>`;
+
+    const inv = data.invalid_entries || [];
+    html += `<div class="section-header">Invalid Entries (${inv.length})</div>`;
+    if (inv.length === 0) {
+      html += `<p class="none-label">None</p>`;
+    } else {
+      html += `<div class="pill-list">${inv.map(e => `<span class="pill" style="color:var(--red)">${e || '(empty)'}</span>`).join('')}</div>`;
+    }
+
+    const dup = data.duplicate_edges || [];
+    html += `<div class="section-header">Duplicate Edges (${dup.length})</div>`;
+    if (dup.length === 0) {
+      html += `<p class="none-label">None</p>`;
+    } else {
+      html += `<div class="pill-list">${dup.map(e => `<span class="pill">${e}</span>`).join('')}</div>`;
+    }
+
+    html += `
+      <div class="section-header">Identity</div>
+      <div style="font-family:var(--mono);font-size:13px;color:var(--muted);line-height:2">
+        <span style="color:var(--text)">${data.user_id}</span> &nbsp;·&nbsp;
+        ${data.email_id} &nbsp;·&nbsp;
+        ${data.college_roll_number}
+      </div>`;
+
+    html += `
+      <button class="raw-toggle" onclick="toggleRaw(this)">Show raw JSON</button>
+      <div class="raw-json">${JSON.stringify(data, null, 2)}</div>`;
+
+    div.innerHTML = html;
+    div.style.display = 'block';
+    div.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function toggleRaw(btn) {
+    const raw = btn.nextElementSibling;
+    const showing = raw.classList.toggle('show');
+    btn.textContent = showing ? 'Hide raw JSON' : 'Show raw JSON';
+  }
+
+  document.getElementById('inputData').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) submitData();
+  });
+</script>
+</body>
+</html>
