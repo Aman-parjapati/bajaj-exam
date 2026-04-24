@@ -319,7 +319,8 @@
       font-style: italic;
     }
 
-    .raw-toggle {
+    /* .raw-toggle {
+      color: #e8e8f0;
       background: none;
       border: 1px solid var(--border);
       color: var(--muted);
@@ -331,7 +332,30 @@
       margin-top: 24px;
       transition: border-color .2s, color .2s;
     }
-    .raw-toggle:hover { border-color: var(--accent); color: var(--accent); }
+    .raw-toggle:hover { border-color: var(--accent); color: var(--accent); } */
+
+    .raw-toggle {
+  background: linear-gradient(135deg, #7c6bff, #9b8cff);
+  border: none;
+  color: #fff;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-family: var(--mono);
+  font-size: 12px;
+  cursor: pointer;
+  margin-top: 24px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(124,107,255,0.4);
+}
+
+.raw-toggle:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(124,107,255,0.6);
+}
+
+.raw-toggle:active {
+  transform: translateY(0);
+}
 
     .raw-json {
       display: none;
